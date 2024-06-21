@@ -25,11 +25,6 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    phoneNumber:{
-        type: Number,
-        required: true,
-        unique: true
-    },
     admin:{
         type: Boolean,
         default:false

@@ -18,7 +18,7 @@ router.route('/getAllProduct').get(getAllProduct)
 router.route("/createProduct").post(upload.fields([
     {
         name: "images",
-        maxCount: 4
+        maxCount:  4
     }
 ]) ,createProduct)
 router.route("/updateProduct/:id").put(updateProduct)

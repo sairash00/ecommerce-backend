@@ -5,17 +5,17 @@ const generateToken = require("../utils/generateAccessToken.js")
 
 // register user
 exports.registerUser = async (req,res) =>{
-
+    console.log("working")
     const user = req.body;
 
-    if(!user.username || !user.password || !user.email || !user.address || !user.phoneNumber) {
+    if(!user.username || !user.password || !user.email || !user.address) {
         return res.status(400).json({
         success: false,
         message: "User Details Required"
         })
     }
 
-
+    console.log("working1")
     const email = user.email
     const foundUser = await User.findOne({email}) 
 
@@ -27,10 +27,14 @@ exports.registerUser = async (req,res) =>{
         })
     }
 
+    console.log("working2")
 
     const hashedPassword = await bcrypt.hash(user.password,10)
     user.password = hashedPassword
+    console.log("working3")
     const newUser = await User.create(user)
+
+    console.log("Working 3")
     
     if(!newUser){
         return res.status(500).json({
@@ -60,10 +64,29 @@ exports.registerUser = async (req,res) =>{
 //login User
 exports.loginUser = async(req,res)=>{
 
-    // const token = req.cookies.accessToken
+    const token = req.cookies.accessToken
+
+    if(!token) {
+        res.json({
+            success: false,
+            loggedIn: false,
+            message: "No Token Available"
+        })
+    }
     
-    // const decodedToken = jwt.verify(token, process.env.JWT_SECRET)
-    // console.log(decodedToken)
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET)
+    console.log(decodedToken)
+
+    const checkUser = await User.findById(decodedToken.id).select("email")
+
+    if(checkUser){
+        return res.status(200).json({
+            success: true,
+            loggedIn: true,
+            message: "User logged in successfully"
+        })
+    }
+
 
     const user = req.body;
 
@@ -253,7 +276,7 @@ exports.getAllUser = async(req,res) => {
     }
 
     const users = await User.find().select(
-        "username email admin phoneNumber ordered"
+        "username email admin ordered"
     )
 
     if(!users) {
@@ -302,7 +325,7 @@ exports.getUserInfo = async(req,res) => {
     }
 
     const userInfo = await User.findById({_id: userId}).select(
-        "email username ordered admin phoneNumber address"
+        "email username ordered admin address"
     )
 
     if(!userInfo) {
