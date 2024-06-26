@@ -22,7 +22,7 @@ router.route("/createProduct").post(upload.fields([
     }
 ]) ,createProduct)
 router.route("/updateProduct/:id").put(updateProduct)
-router.route("/deleteProduct/:id").delete(deleteProduct)
+router.route("/deleteProduct").post(deleteProduct)
 router.route("/getProductDetail/:id").get(getProductDetail)
 
 module.exports = router;

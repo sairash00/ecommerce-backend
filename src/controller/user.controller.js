@@ -5,94 +5,83 @@ const generateToken = require("../utils/generateAccessToken.js")
 
 // register user
 exports.registerUser = async (req,res) =>{
-    console.log("working")
-    const user = req.body;
-
-    if(!user.username || !user.password || !user.email || !user.address) {
-        return res.status(400).json({
+   try {
+     const user = req.body;
+ 
+     if(!user.username || !user.password || !user.email || !user.address) {
+         return res.status(400).json({
+         success: false,
+         loggedIn: false,
+         message: "User Details Required"
+         })
+     }
+ 
+     const {email, username} = user
+     const foundUser = await User.findOne({
+        $or: [
+            {email: email},
+            {username: username}
+        ]
+     }) 
+ 
+ 
+     if(foundUser){
+         return res.status(200).json({
+             success: false,
+             loggedIn:false,
+             message: " User Already Exists"
+         })
+     }
+ 
+ 
+     const hashedPassword = await bcrypt.hash(user.password,10)
+     user.password = hashedPassword
+     const newUser = await User.create(user)
+ 
+     
+     if(!newUser){
+         return res.status(500).json({
+            loggedIn:false,
+             success: false,
+             message: "User Registration Failed"
+         })
+     }
+ 
+     const generatedToken = generateToken(newUser.email, newUser._id)
+ 
+     const options = {
+         httpOnly: true,
+         secure: true,
+         expires: new Date(Date.now() + 2 * 60 * 60 * 1000 )
+     }
+ 
+     res.status(200)
+     .cookie("accessToken", generatedToken , options)
+     .json({
+         success: true,
+         loggedIn: true,
+         message: "User Registered Successfully",
+         newUser
+     })
+   } catch (error) {
+     res.status(500).json({
+        loggedIn: false,
         success: false,
-        message: "User Details Required"
-        })
-    }
-
-    console.log("working1")
-    const email = user.email
-    const foundUser = await User.findOne({email}) 
-
-
-    if(foundUser){
-        return res.status(400).json({
-            success: false,
-            message: " User Already Exists"
-        })
-    }
-
-    console.log("working2")
-
-    const hashedPassword = await bcrypt.hash(user.password,10)
-    user.password = hashedPassword
-    console.log("working3")
-    const newUser = await User.create(user)
-
-    console.log("Working 3")
-    
-    if(!newUser){
-        return res.status(500).json({
-            success: false,
-            message: "User Registration Failed"
-        })
-    }
-
-    const generatedToken = generateToken(newUser.email, newUser._id)
-
-    const options = {
-        httpOnly: true,
-        secure: true,
-        expires: new Date(Date.now() + 2 * 60 * 60 * 1000 )
-    }
-
-    res.status(200)
-    .cookie("accessToken", generatedToken , options)
-    .json({
-        success: true,
-        message: "User Registered Successfully",
-        newUser
-    })
+        message: error
+     })
+   }
 
 }
 
 //login User
 exports.loginUser = async(req,res)=>{
 
-    const token = req.cookies.accessToken
-
-    if(!token) {
-        res.json({
-            success: false,
-            loggedIn: false,
-            message: "No Token Available"
-        })
-    }
-    
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET)
-    console.log(decodedToken)
-
-    const checkUser = await User.findById(decodedToken.id).select("email")
-
-    if(checkUser){
-        return res.status(200).json({
-            success: true,
-            loggedIn: true,
-            message: "User logged in successfully"
-        })
-    }
-
-
     const user = req.body;
 
     if(!user.email || !user.password){
         return res.status(400).json({
             success: false,
+            loggedIn: false,
             message: "User Details Required"
         })
     }
@@ -100,15 +89,16 @@ exports.loginUser = async(req,res)=>{
     const foundUser = await User.findOne({email : user.email}).select(
         "email password"
     )
-
     if(!foundUser){
         return res.status(400).json({
+            loggedIn:false,
             success: false,
             message: "User not Found"
         })
     }
 
     const isMatch = await bcrypt.compare(user.password,foundUser.password)
+    console.log(isMatch)
 
     if(!isMatch){
         return res.status(400).json({
@@ -116,7 +106,6 @@ exports.loginUser = async(req,res)=>{
             message: "Incorrect Password"
         })
     }
-
     const options = {
         httpOnly: true,
         secure: true,
@@ -128,6 +117,7 @@ exports.loginUser = async(req,res)=>{
     return res.status(200)
     .cookie("accessToken",generatedToken,options)
     .json({
+        loggedIn: true,
         success:true,
         message: "User logged in Successfully",
     })
@@ -141,6 +131,7 @@ exports.logoutUser = async(req,res) => {
     if(!cookie) {
         return res.status(400).json({
             success: false,
+            loggedIn: false,
             message: "Invalid Request"
         })
     }
@@ -153,6 +144,7 @@ exports.logoutUser = async(req,res) => {
     if(!user){
         return res.status(400).json({
             success: false,
+            loggedIn: false,
             message: "Invalid Request"
         })
     }
@@ -172,6 +164,7 @@ exports.deleteUser = async(req,res) => {
     if(!token) {
         return res.status(400).json({
             success: false,
+            loggedIn:false,
             message: "Unauthorized Request"
         })
     }
@@ -184,6 +177,7 @@ exports.deleteUser = async(req,res) => {
     if(!user) {
         return res.status(400).json({
             success: false,
+            loggedIn: false,
             message: "Unauthorized Request"
         })
     }
@@ -221,15 +215,13 @@ exports.updateUser = async(req,res) => {
     if(!token) {
         return res.status(400).json({
             success: false,
+            loggedIn:false,
             message: "Unauthorized Request"
         })
     }
     const decodedToken = jwt.verify(token,process.env.JWT_SECRET)
     
-    const details = req.body
-
-    const hashedPassword = await bcrypt.hash(details.password,10)
-    details.password =  hashedPassword
+    const {details} = req.body
 
     if(!details){
         return res.status(400).json({
@@ -237,6 +229,10 @@ exports.updateUser = async(req,res) => {
             message: "Fields are empty"
         })
     }
+
+    const hashedPassword = await bcrypt.hash(details.password,10)
+    details.password =  hashedPassword
+
 
     const user = await User.findByIdAndUpdate({_id: decodedToken.id}, details)
 
@@ -276,7 +272,7 @@ exports.getAllUser = async(req,res) => {
     }
 
     const users = await User.find().select(
-        "username email admin ordered"
+        "username email address admin createdAt"
     )
 
     if(!users) {
@@ -295,53 +291,43 @@ exports.getAllUser = async(req,res) => {
 }
 
 exports.getUserInfo = async(req,res) => {
-    const token = req.cookies?.accessToken
-    if(!token) {
-        return res.status(401).json({
-            success:false,
-            message: "Unauthorized Request"
-        })
-    }
-
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET)
-    
-    const user = await User.findById({_id: decodedToken.id}).select(
-        "admin "
-    )
-    if(!user || user.admin === false) {
-        return res.status(401).json({
+   try {
+     const token = req.cookies?.accessToken
+     if(!token) {
+         return res.status(401).json({
+             success:false,
+             loggedIn:false,
+             message: "Unauthorized Request"
+         })
+     }
+ 
+     const decodedToken = jwt.verify(token, process.env.JWT_SECRET)
+     
+     const user = await User.findById({_id: decodedToken.id}).select(
+         "-password -cart"
+     )
+     if(!user) {
+         return res.status(401).json({
+             success: false,
+             loggedIn:false,
+             message: "Unauthorized Request"
+         })
+     }
+ 
+     return res.status(200).json({
+         success: true,
+         message: "User found successfully",
+         user
+     })
+   } catch (error) {
+        res.status(500).json({
             success: false,
-            message: "Unauthorized Request"
+            message: "error while fetching user data"
         })
-    }
-
-    const userId = req.params.id
-
-    if(!userId || userId.length > 24 || userId.length < 24 ) {
-        return res.status(400).json({
-            success: false,
-            message: "User Id Required"
-        })
-    }
-
-    const userInfo = await User.findById({_id: userId}).select(
-        "email username ordered admin address"
-    )
-
-    if(!userInfo) {
-        return res.status(400).json({
-            success: false,
-            message: "User not Found"
-        })
-    }
-    return res.status(200).json({
-        success: true,
-        message: "User found successfully",
-        userInfo
-    })
+   }
 }
 
-exports.makeAdmin = async(req,res) => {
+exports.makeAdmin = async(req,res) => { 
 
     const token = req.cookies?.accessToken
     if(!token) {
@@ -363,7 +349,7 @@ exports.makeAdmin = async(req,res) => {
         })
     }
 
-    const userId = req.params.id
+    const userId = req.body.id
 
     if(!userId || userId.length > 24 || userId.length < 24 ) {
         return res.status(400).json({

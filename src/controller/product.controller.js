@@ -21,6 +21,7 @@ exports.createProduct = async (req,res) => {
     if(!user || !user.admin){
         return res.status(401).json({
             success : flase,
+            loggedIn: false,
             message: "Unauthorized Access"
         })
     }
@@ -57,6 +58,7 @@ exports.createProduct = async (req,res) => {
  
    return res.status(200).json({
         success: true,
+        message: "Product created successfully",
         createdProduct
     })
 
@@ -65,25 +67,6 @@ exports.createProduct = async (req,res) => {
 // get all product route
 
 exports.getAllProduct =async (req,res) =>{
-    const token = req.cookies?.accessToken
-
-    if(!token){
-        return res.status(401).json({
-            success:false,
-            message: "Unauthorized Request"
-        })
-    }
-    const decodedToken = jwt.verify(token,process.env.JWT_SECRET)
-    const user = await User.findById(decodedToken.id).select("admin")
-
-    if(!user || !user.admin){
-        return res.status(401).json({
-            success: false,
-            loggedIn: false,
-            message: "Unauthorized Access, Invalid token"
-        })
-    }
-
     const products = await Product.find()
 
     if(!products){
@@ -92,6 +75,7 @@ exports.getAllProduct =async (req,res) =>{
             message: "Error fetching products"
         })
     }
+
 
     res.status(200).json({
         success: true,
@@ -162,6 +146,7 @@ exports.deleteProduct = async(req,res) => {
             message: "Unauthorized Request"
         })
     }
+
     const decodedToken = jwt.verify(token,process.env.JWT_SECRET)
     const user = await User.findById(decodedToken.id).select("admin")
 
@@ -173,10 +158,11 @@ exports.deleteProduct = async(req,res) => {
         })
     }
 
-    let product = await Product.findById(req.params.id)
+    console.log(req.body.id)
+    let product = await Product.findById(req.body.id)
 
     if(!product){
-        return res.status(500).json({
+        return res.status(401).json({
             success: false,
             message: "Product not found",
         })
@@ -202,27 +188,6 @@ exports.deleteProduct = async(req,res) => {
 // find product detail
 
 exports.getProductDetail= async (req, res, next) => {
-
-
-       
-    const token = req.cookies?.accessToken
-
-    if(!token){
-        return res.status(401).json({
-            success:false,
-            message: "Unauthorized Request"
-        })
-    }
-    const decodedToken = jwt.verify(token,process.env.JWT_SECRET)
-    const user = await User.findById(decodedToken.id).select("admin")
-
-    if(!user || !user.admin){
-        return res.status(401).json({
-            success: false,
-            loggedIn: false,
-            message: "Unauthorized Access, Invalid token"
-        })
-    }
     const product = await Product.findById(req.params.id)
     
     if(!product){

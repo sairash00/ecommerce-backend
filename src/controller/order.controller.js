@@ -29,7 +29,7 @@ exports.addOrder = async(req,res) => {
             })
         }
     
-        const product = req.body
+        const {product} = req.body
     
         if(!product || !Array.isArray(product)){
             return res.status(400).json({
@@ -39,7 +39,8 @@ exports.addOrder = async(req,res) => {
         }
     
         for(each of product){
-            if(!each.id || !mongoose.Types.ObjectId.isValid(each.id)){
+            console.log(each)
+            if(!each || !mongoose.isValidObjectId(each)){
                 return(
                     res.status(400).json({
                         success: false,
@@ -49,7 +50,7 @@ exports.addOrder = async(req,res) => {
             }
         }
     
-        const productIds = product.map( product => product.id)
+        const productIds = product.map( product => product)
     
         const foundProducts = await Product.find({"_id" : {$in: productIds}})
     
@@ -60,6 +61,8 @@ exports.addOrder = async(req,res) => {
             })
         }
         
+        console.log(productIds)
+
         const newOrder = await Order.create({
             orderedBy : user._id,
             ordered : productIds
@@ -80,7 +83,8 @@ exports.addOrder = async(req,res) => {
     
         return res.status(200).json({
             success: true,
-            message: "Order was Succesful"
+            message: "Order was Succesful",
+            newOrder
         })
     
     
@@ -106,7 +110,7 @@ exports.getOrder = async(req,res) => {
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET)
         const order = await Order.find({"orderedBy" : decodedToken.id}).select("ordered").populate({
             path : "ordered",
-            select: "name price category"
+            select: "name price category images"
         })
 
     
@@ -159,10 +163,10 @@ exports.getAllOrders = async(req,res) => {
 
     const orders = await Order.find({pending:true}).select("orderedBy ordered pending").populate({
         path:"orderedBy",
-        select:"username address email phoneNumber   "
+        select:"username address email createdAt "
     }).populate({
         path: "ordered",
-        select: "name description price category"
+        select: "name price category images"
     })
 
     if(!orders){
@@ -243,10 +247,9 @@ exports.addToCart = async (req,res) => {
              message: "Unauthorized Access, no Token found"
          })
      }
- 
      const decodedToken = jwt.verify(token, process.env.JWT_SECRET)
      const user = await User.findById(decodedToken.id).select("cart")
- 
+
      if(!user) {
          return res.status(401).json({
              success: false,
@@ -254,7 +257,6 @@ exports.addToCart = async (req,res) => {
              message: "Unauthorized Access, Invalid token"
          })
      }
- 
      const productId = req.body.id
      if(!productId){
          return res.status(400).json({
@@ -262,13 +264,24 @@ exports.addToCart = async (req,res) => {
              message: "Invalid Request"
          })
      }
- 
      const product = await Product.findById(productId)
      if(!product){
          return res.status(400).json({
              success: false,
              message: "Product not found"
          })
+     }
+
+
+     const isFound = user.cart.includes(productId)
+
+
+     if(isFound){
+        return res.status(401).json({
+            success: false,
+            loggedIn: true,
+            message: "Product Already in cart"
+        })
      }
  
      user.cart.push(productId);
@@ -296,21 +309,21 @@ try {
         if(!token){
             return res.status(401).json({
                 success:false,
+                loggedIn:false,
                 message: "Unauthorized Access, Token not found"
             })
         }
-    
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET)
         const user = await User.findById(decodedToken.id).select("cart").populate({
             path: "cart",
-            select: "name description price category"
+            select: "name description price category images "
         })
     
         if(!user) {
             return res.status(401).json({
                 success: false,
                 loggedIn: false,
-                message: "Unauthorized Access, Invalid token"
+                message: "User not found",
             })
         }
     
@@ -415,7 +428,7 @@ exports.deleteCart = async(req,res) => {
         { _id: user._id },
         { $pull: { cart : id } }
       );
-
+      
     if(!cart){
         return res.status(500).json({
             success: false,
@@ -426,6 +439,7 @@ exports.deleteCart = async(req,res) => {
     return res.status(200).json({
         success: true,  
         message: "Removed from cart",
+        cart
     })  
 
 }

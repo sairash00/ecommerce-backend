@@ -11,16 +11,18 @@ const app = express()
   app.use(
     express.json()
   );
+
+  const corsOptions = {
+    origin: 'http://localhost:5173', 
+    credentials: true, 
+  };
+  app.use(cors(corsOptions))
+  
   app.use(cookieParser());
   app.use(express.urlencoded({ extended: true }));
   app.use(express.static("public")) 
   
-  const corsOptions = {
-    origin: '*', 
-    credentials: true, 
-  };
   
-  app.use(cors(corsOptions))
   
 
 //route setup

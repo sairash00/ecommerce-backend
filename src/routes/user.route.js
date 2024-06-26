@@ -17,7 +17,7 @@ const router = express.Router()
 
 
 
-// routes
+// routes 
 
 router.route("/registerUser").post(registerUser)
 router.route("/loginUser").post(loginUser)
@@ -25,8 +25,8 @@ router.route("/logoutUser").post(logoutUser)
 router.route("/deleteUser").post(deleteUser)
 router.route("/updateUser").post(updateUser)
 router.route("/getAllUser").get(getAllUser)
-router.route("/getUserInfo/:id").get(getUserInfo)
-router.route("/makeAdmin/:id").post(makeAdmin)
+router.route("/getUserInfo").get(getUserInfo)
+router.route("/makeAdmin").post(makeAdmin)
 router.route("/removeAdmin/:id").post(removeAdmin)
 
 module.exports  = router
