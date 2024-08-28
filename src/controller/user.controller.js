@@ -52,6 +52,7 @@ exports.registerUser = async (req,res) =>{
      const options = {
          httpOnly: true,
          secure: true,
+         sameSite: 'None',
          expires: new Date(Date.now() + 2 * 60 * 60 * 1000 )
      }
  
@@ -108,6 +109,7 @@ exports.loginUser = async(req,res)=>{
     }
     const options = {
         httpOnly: true,
+        sameSite: 'None',
         secure: true,
         expires: new Date(Date.now() + 2 * 60 * 60 * 1000)
     }
