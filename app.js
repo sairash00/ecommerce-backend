@@ -13,7 +13,7 @@ const app = express()
   );
 
   const corsOptions = {
-    origin: 'http://localhost:5173', 
+    origin: 'https://ecommerce-frontend-sigma-nine.vercel.app', 
     credentials: true, 
   };
   app.use(cors(corsOptions))
