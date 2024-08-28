@@ -22,8 +22,6 @@ const app = express()
   app.use(express.urlencoded({ extended: true }));
   app.use(express.static("public")) 
   
-  
-  
 
 //route setup
 app.use("/api/v1",productRoute)
