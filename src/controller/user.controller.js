@@ -316,6 +316,7 @@ exports.getUserInfo = async(req,res) => {
  
      return res.status(200).json({
          success: true,
+         loggedIn: true,
          message: "User found successfully",
          user
      })
